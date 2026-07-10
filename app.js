@@ -107,7 +107,7 @@ const App = {
     document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
     document.getElementById(`view-${view}`).classList.add("active");
     document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === view));
-    if (view === "progress") this.renderChart();
+    if (view === "progress") this.renderProgress();
   },
 
   updateSyncBadge() {
@@ -376,6 +376,97 @@ const App = {
     }
     document.getElementById("scan-date").value = todayISO();
     this.renderChart();
+    this.renderExerciseTrends();
+  },
+
+  getAllExerciseNames() {
+    const names = new Set();
+    Object.values(PLAN).forEach((list) => list.forEach((ex) => names.add(ex.name)));
+    return [...names];
+  },
+
+  getExerciseHistory(name) {
+    const points = [];
+    Object.keys(this.workoutLog).sort().forEach((date) => {
+      const sets = this.workoutLog[date].exercises?.[name];
+      if (!sets) return;
+      const weights = sets.map((s) => s.weight).filter((w) => w != null && w > 0);
+      if (!weights.length) return;
+      points.push({ date, weight: Math.max(...weights) });
+    });
+    return points;
+  },
+
+  renderExerciseTrends() {
+    const container = document.getElementById("exercise-trends");
+    if (!container) return;
+    const rows = this.getAllExerciseNames()
+      .map((name) => ({ name, points: this.getExerciseHistory(name) }))
+      .filter((r) => r.points.length > 0)
+      .sort((a, b) => b.points.length - a.points.length);
+
+    if (!rows.length) {
+      container.innerHTML = `<p class="empty">Log a few workouts to see strength trends.</p>`;
+      return;
+    }
+
+    container.innerHTML = rows.map((r) => {
+      const first = r.points[0].weight;
+      const last = r.points[r.points.length - 1].weight;
+      const delta = last - first;
+      let cls = "flat", badge = "No change";
+      if (r.points.length < 2) {
+        cls = "flat"; badge = "1 session";
+      } else if (delta > 0) {
+        cls = "up"; badge = `↑ +${delta} lb`;
+      } else if (delta < 0) {
+        cls = "down"; badge = `↓ ${delta} lb`;
+      } else {
+        cls = "flat"; badge = "→ No change";
+      }
+      const canvasId = `spark-${r.name.replace(/[^a-zA-Z0-9]/g, "")}`;
+      return `<div class="exercise-trend-row">
+        <div class="exercise-trend-info">
+          <div class="exercise-trend-name">${r.name}</div>
+          <div class="exercise-trend-meta">${r.points.length} session${r.points.length > 1 ? "s" : ""} · ${first}→${last} lb</div>
+        </div>
+        <canvas class="sparkline" id="${canvasId}" width="90" height="32"></canvas>
+        <div class="trend-badge ${cls}">${badge}</div>
+      </div>`;
+    }).join("");
+
+    rows.forEach((r) => this.drawSparkline(`spark-${r.name.replace(/[^a-zA-Z0-9]/g, "")}`, r.points));
+  },
+
+  drawSparkline(canvasId, points) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height, pad = 4;
+    ctx.clearRect(0, 0, W, H);
+    if (points.length < 2) {
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#9aa2ac";
+      ctx.fill();
+      return;
+    }
+    const weights = points.map((p) => p.weight);
+    const min = Math.min(...weights), max = Math.max(...weights);
+    const range = max - min || 1;
+    const x = (i) => pad + (i / (points.length - 1)) * (W - pad * 2);
+    const y = (w) => H - pad - ((w - min) / range) * (H - pad * 2);
+    const color = weights[weights.length - 1] > weights[0] ? "#3ecf8e" : weights[weights.length - 1] < weights[0] ? "#ff6b6b" : "#9aa2ac";
+
+    ctx.beginPath();
+    points.forEach((p, i) => { const px = x(i), py = y(p.weight); i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x(points.length - 1), y(weights[weights.length - 1]), 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
   },
 
   renderChart() {

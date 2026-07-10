@@ -162,6 +162,23 @@
   .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
   canvas{width:100%;height:180px;display:block;}
+  canvas.sparkline{width:90px;height:32px;flex-shrink:0;}
+
+  .exercise-trend-row{
+    display:flex;align-items:center;gap:12px;
+    border-top:1px solid var(--border);padding:12px 0;
+  }
+  .exercise-trend-row:first-child{border-top:none;padding-top:0;}
+  .exercise-trend-info{flex:1;min-width:0;}
+  .exercise-trend-name{font-weight:600;font-size:0.9rem;}
+  .exercise-trend-meta{color:var(--text-dim);font-size:0.76rem;margin-top:2px;}
+  .trend-badge{
+    font-size:0.78rem;font-weight:700;white-space:nowrap;flex-shrink:0;
+    padding:4px 9px;border-radius:100px;
+  }
+  .trend-badge.up{background:#1a3323;color:var(--green);}
+  .trend-badge.down{background:#3a1a1a;color:#ff6b6b;}
+  .trend-badge.flat{background:var(--surface-2);color:var(--text-dim);}
 
   table.log-table{width:100%;border-collapse:collapse;font-size:0.85rem;}
   table.log-table th,table.log-table td{padding:8px 4px;text-align:left;border-bottom:1px solid var(--border);}
@@ -242,6 +259,11 @@
         <span style="color:var(--accent);font-size:0.75rem;">● Weight (lb)</span>
         <span style="color:var(--blue);font-size:0.75rem;">● Body fat (%)</span>
       </div>
+    </div>
+    <div class="card">
+      <h2>Exercise trends</h2>
+      <p style="color:var(--text-dim);font-size:0.8rem;margin:0 0 12px;">Top set weight per exercise, session over session.</p>
+      <div id="exercise-trends"></div>
     </div>
     <div class="card">
       <h2>Log a scan</h2>
