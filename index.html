@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Iron Log</title>
+<meta name="theme-color" content="#0d0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Iron Log">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+
+<!-- ===== Supabase config (optional cross-device sync) =====
+     Fill these in from Supabase → Project Settings → API to enable sync.
+     Leave as-is to run on local device storage only. -->
+<script>
+  window.SUPABASE_URL = "https://bnwowwwwjsyrrvlltvfb.supabase.co";
+  window.SUPABASE_ANON_KEY = "sb_publishable_wuqX1Dr20rp3TmCWvkS5eg_LxYUCOpS";
+</script>
+
+<style>
+  :root{
+    --bg:#0d0f12;
+    --surface:#16191d;
+    --surface-2:#1e2227;
+    --border:#2a2f36;
+    --text:#eef0f2;
+    --text-dim:#9aa2ac;
+    --accent:#ff5a1f;
+    --accent-dim:#7a2f14;
+    --blue:#4f9ddb;
+    --green:#3ecf8e;
+    --yellow:#e8b84b;
+    --radius:14px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  header{
+    padding:calc(env(safe-area-inset-top) + 16px) 20px 14px;
+    background:linear-gradient(180deg,var(--surface) 0%, var(--bg) 100%);
+    border-bottom:1px solid var(--border);
+    position:sticky;top:0;z-index:10;
+  }
+  header h1{
+    margin:0;
+    font-size:1.4rem;
+    letter-spacing:0.5px;
+    display:flex;align-items:center;gap:8px;
+  }
+  header h1 .bar{
+    width:8px;height:20px;background:var(--accent);border-radius:2px;
+    display:inline-block;
+  }
+  header .sub{color:var(--text-dim);font-size:0.85rem;margin-top:4px;}
+
+  main{flex:1;padding:16px 16px 90px;max-width:640px;width:100%;margin:0 auto;}
+  .view{display:none;animation:fade .18s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .card h2{margin:0 0 12px;font-size:1.05rem;}
+  .card h3{margin:0 0 8px;font-size:0.95rem;color:var(--text-dim);font-weight:600;}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .pill{
+    display:inline-block;padding:3px 10px;border-radius:100px;
+    font-size:0.72rem;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;
+  }
+  .pill.push{background:#3a2016;color:#ff8c52;}
+  .pill.pull{background:#16233a;color:#5ea8f0;}
+  .pill.legs{background:#1a3323;color:#4fd888;}
+  .pill.full{background:#332616;color:#e8b84b;}
+  .pill.rest{background:#22242a;color:#9aa2ac;}
+
+  .exercise{
+    border-top:1px solid var(--border);
+    padding:12px 0;
+  }
+  .exercise:first-child{border-top:none;padding-top:0;}
+  .exercise .name{font-weight:600;font-size:0.98rem;}
+  .exercise .target{color:var(--text-dim);font-size:0.8rem;margin-top:2px;}
+  .set-rows{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+  .set-row{display:flex;align-items:center;gap:8px;}
+  .set-row .set-num{width:22px;color:var(--text-dim);font-size:0.78rem;flex-shrink:0;}
+  .set-row input[type=number]{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:8px 10px;font-size:0.9rem;
+  }
+  .set-row .x{color:var(--text-dim);font-size:0.8rem;}
+  .set-row input[type=checkbox]{
+    width:22px;height:22px;accent-color:var(--accent);flex-shrink:0;
+  }
+
+  .meal-card{
+    display:flex;gap:12px;align-items:flex-start;
+    border-top:1px solid var(--border);padding:14px 0;
+  }
+  .meal-card:first-child{border-top:none;padding-top:0;}
+  .meal-card input[type=checkbox]{
+    width:24px;height:24px;accent-color:var(--accent);margin-top:2px;flex-shrink:0;
+  }
+  .meal-body{flex:1;}
+  .meal-body .meal-name{font-weight:600;}
+  .meal-body .meal-desc{color:var(--text-dim);font-size:0.85rem;margin-top:2px;}
+  .meal-body .macros{color:var(--text-dim);font-size:0.78rem;margin-top:6px;}
+  .toggle-group{display:flex;gap:6px;margin-top:8px;}
+  .toggle-btn{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text-dim);
+    border-radius:8px;padding:5px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;
+  }
+  .toggle-btn.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);}
+
+  .btn{
+    background:var(--accent);color:#fff;border:none;border-radius:10px;
+    padding:12px 18px;font-size:0.95rem;font-weight:700;width:100%;cursor:pointer;
+  }
+  .btn.secondary{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+  .btn.small{width:auto;padding:8px 14px;font-size:0.85rem;}
+  .btn:active{opacity:0.8;}
+
+  .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .day-chip{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    padding:10px 4px;text-align:center;cursor:pointer;
+  }
+  .day-chip.selected{border-color:var(--accent);}
+  .day-chip .dow{font-size:0.68rem;color:var(--text-dim);}
+  .day-chip .label{font-size:0.66rem;margin-top:4px;font-weight:700;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .stat-box{background:var(--surface-2);border-radius:10px;padding:10px;text-align:center;}
+  .stat-box .val{font-size:1.25rem;font-weight:800;}
+  .stat-box .lbl{font-size:0.68rem;color:var(--text-dim);margin-top:2px;text-transform:uppercase;letter-spacing:0.3px;}
+
+  .progress-bar{background:var(--surface-2);border-radius:100px;height:10px;overflow:hidden;margin:10px 0;}
+  .progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--yellow));border-radius:100px;}
+
+  label{display:block;font-size:0.78rem;color:var(--text-dim);margin-bottom:4px;margin-top:10px;}
+  input[type=text],input[type=number],input[type=date]{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:10px;font-size:0.95rem;
+  }
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  canvas{width:100%;height:180px;display:block;}
+
+  table.log-table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+  table.log-table th,table.log-table td{padding:8px 4px;text-align:left;border-bottom:1px solid var(--border);}
+  table.log-table th{color:var(--text-dim);font-weight:600;font-size:0.72rem;text-transform:uppercase;}
+
+  nav.tabbar{
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--surface);border-top:1px solid var(--border);
+    display:flex;padding-bottom:env(safe-area-inset-bottom);
+    z-index:20;
+  }
+  nav.tabbar button{
+    flex:1;background:none;border:none;color:var(--text-dim);
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:10px 4px 8px;font-size:0.65rem;font-weight:600;cursor:pointer;
+  }
+  nav.tabbar button svg{width:22px;height:22px;stroke:var(--text-dim);fill:none;stroke-width:2;}
+  nav.tabbar button.active{color:var(--accent);}
+  nav.tabbar button.active svg{stroke:var(--accent);}
+
+  .empty{color:var(--text-dim);font-size:0.85rem;text-align:center;padding:20px 0;}
+  .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+  .sync-dot.on{background:var(--green);}
+  .sync-dot.off{background:var(--text-dim);}
+  .banner{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    padding:10px 12px;font-size:0.8rem;color:var(--text-dim);margin-bottom:14px;
+  }
+  textarea{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:10px;font-size:0.8rem;min-height:90px;font-family:monospace;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="bar"></span>Iron Log</h1>
+  <div class="sub" id="header-sub">—</div>
+</header>
+
+<main>
+
+  <!-- TODAY -->
+  <section class="view active" id="view-today">
+    <div class="card" id="today-workout-card"></div>
+    <div class="card" id="today-meals-card"></div>
+  </section>
+
+  <!-- WORKOUT -->
+  <section class="view" id="view-workout">
+    <div class="card">
+      <h2>This week</h2>
+      <div class="week-grid" id="week-grid"></div>
+    </div>
+    <div class="card" id="workout-day-card"></div>
+  </section>
+
+  <!-- NUTRITION -->
+  <section class="view" id="view-nutrition">
+    <div class="card" id="nutrition-plan-card"></div>
+    <div class="card">
+      <h2>Recent meal log</h2>
+      <div id="meal-history"></div>
+    </div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="view" id="view-progress">
+    <div class="card">
+      <h2>Goal progress</h2>
+      <div id="goal-summary"></div>
+    </div>
+    <div class="card">
+      <h2>Trend</h2>
+      <canvas id="trend-chart"></canvas>
+      <div class="row" style="margin-top:6px;justify-content:center;gap:16px;">
+        <span style="color:var(--accent);font-size:0.75rem;">● Weight (lb)</span>
+        <span style="color:var(--blue);font-size:0.75rem;">● Body fat (%)</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Log a scan</h2>
+      <label>Date</label>
+      <input type="date" id="scan-date">
+      <div class="field-row">
+        <div>
+          <label>Weight (lb)</label>
+          <input type="number" step="0.1" id="scan-weight" placeholder="175">
+        </div>
+        <div>
+          <label>Body fat (%)</label>
+          <input type="number" step="0.1" id="scan-bf" placeholder="22.3">
+        </div>
+      </div>
+      <button class="btn" style="margin-top:14px;" onclick="App.addScan()">Save scan</button>
+    </div>
+    <div class="card">
+      <h2>Scan history</h2>
+      <div id="scan-history"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="view-settings">
+    <div class="card">
+      <h2><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Local storage only</span></h2>
+      <p style="color:var(--text-dim);font-size:0.82rem;">
+        To sync between your phone and computer, connect Supabase: create a free project at
+        supabase.com, run the setup SQL, then paste your Project URL and anon key into the
+        <code>SUPABASE_URL</code> / <code>SUPABASE_ANON_KEY</code> constants at the top of
+        <code>index.html</code> and redeploy.
+      </p>
+    </div>
+    <div class="card">
+      <h2>Profile & goal</h2>
+      <div class="field-row">
+        <div>
+          <label>Start weight (lb)</label>
+          <input type="number" step="0.1" id="set-start-weight">
+        </div>
+        <div>
+          <label>Start body fat (%)</label>
+          <input type="number" step="0.1" id="set-start-bf">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label>Goal weight (lb)</label>
+          <input type="number" step="0.1" id="set-goal-weight">
+        </div>
+        <div>
+          <label>Goal body fat (%)</label>
+          <input type="number" step="0.1" id="set-goal-bf">
+        </div>
+      </div>
+      <label>Maintenance calories (TEE)</label>
+      <input type="number" id="set-tee">
+      <button class="btn" style="margin-top:14px;" onclick="App.saveProfile()">Save profile</button>
+    </div>
+    <div class="card">
+      <h2>Backup</h2>
+      <p style="color:var(--text-dim);font-size:0.82rem;margin:0 0 10px;">Export your data as JSON, or restore from a backup.</p>
+      <button class="btn secondary" onclick="App.exportData()">Export data</button>
+      <textarea id="import-box" placeholder="Paste exported JSON here to restore…" style="margin-top:10px;"></textarea>
+      <button class="btn secondary" style="margin-top:10px;" onclick="App.importData()">Import data</button>
+    </div>
+    <div class="card">
+      <h2 style="color:var(--accent);">Danger zone</h2>
+      <button class="btn secondary" onclick="App.clearData()">Clear all local data</button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="tab-btn active" data-view="today">
+    <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+    Today
+  </button>
+  <button class="tab-btn" data-view="workout">
+    <svg viewBox="0 0 24 24"><path d="M6 7v10M2 9v6M18 7v10M22 9v6M6 12h12"/></svg>
+    Workout
+  </button>
+  <button class="tab-btn" data-view="nutrition">
+    <svg viewBox="0 0 24 24"><path d="M4 3v18M4 3c0 4 4 4 4 8s-4 4-4 8M18 3v18M15 8h6"/></svg>
+    Meals
+  </button>
+  <button class="tab-btn" data-view="progress">
+    <svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg>
+    Progress
+  </button>
+  <button class="tab-btn" data-view="settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.36.36.86.6 1.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<script src="storage.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
