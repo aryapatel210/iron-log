@@ -28,9 +28,9 @@ const PLAN = {
   full: [
     { name: "Back Squat", sets: 3, reps: "8" },
     { name: "Bench Press", sets: 3, reps: "8" },
-    { name: "Bent-Over Row", sets: 3, reps: "8" },
     { name: "Seated Overhead Press", sets: 3, reps: "8" },
-    { name: "Leg Press", sets: 3, reps: "10-12" },
+    { name: "Dumbbell Curl", sets: 3, reps: "10-12" },
+    { name: "Overhead Tricep Extension", sets: 3, reps: "10-12" },
     { name: "Plank", sets: 3, reps: "30-45s" },
   ],
   rest: [],
