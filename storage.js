@@ -1,6 +1,6 @@
 // Storage abstraction: uses Supabase (table "logs", columns id/data/updated_at) when
 // configured, otherwise falls back transparently to localStorage. Every key used by
-// the app (profile, bodyscans, workoutlog, meallog) is a row id in that table.
+// the app (profile, bodyscans, workoutlog) is a row id in that table.
 
 const Storage = (() => {
   const LOCAL_PREFIX = "ironlog_";

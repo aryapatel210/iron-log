@@ -1,4 +1,4 @@
-/* Iron Log — 4-day split (Push/Pull/Legs/Full Body) + meal tracker + body-scan progress. */
+/* Iron Log — 4-day split (Push/Pull/Legs/Full Body) + body-scan progress. */
 
 const PLAN = {
   push: [
@@ -10,7 +10,7 @@ const PLAN = {
     { name: "Cable Fly", sets: 3, reps: "10-12" },
   ],
   pull: [
-    { name: "Deadlift", sets: 3, reps: "5" },
+    { name: "Seated Cable Row", sets: 3, reps: "8-10" },
     { name: "Pull-Ups / Lat Pulldown", sets: 4, reps: "8-10" },
     { name: "Barbell Row", sets: 3, reps: "8-10" },
     { name: "Face Pulls", sets: 3, reps: "15" },
@@ -19,7 +19,7 @@ const PLAN = {
   ],
   legs: [
     { name: "Back Squat", sets: 4, reps: "6-8" },
-    { name: "Romanian Deadlift", sets: 3, reps: "8-10" },
+    { name: "Bulgarian Split Squat", sets: 3, reps: "8-10/leg" },
     { name: "Leg Press", sets: 3, reps: "10-12" },
     { name: "Leg Curl", sets: 3, reps: "12" },
     { name: "Walking Lunges", sets: 3, reps: "10/leg" },
@@ -30,7 +30,7 @@ const PLAN = {
     { name: "Bench Press", sets: 3, reps: "8" },
     { name: "Bent-Over Row", sets: 3, reps: "8" },
     { name: "Seated Overhead Press", sets: 3, reps: "8" },
-    { name: "Romanian Deadlift", sets: 3, reps: "8" },
+    { name: "Leg Press", sets: 3, reps: "10-12" },
     { name: "Plank", sets: 3, reps: "30-45s" },
   ],
   rest: [],
@@ -40,12 +40,6 @@ const DAY_LABEL = { push: "Push", pull: "Pull", legs: "Legs", full: "Full Body",
 // index 0 = Sunday ... 6 = Saturday
 const WEEKDAY_SPLIT = ["rest", "push", "pull", "legs", "rest", "full", "rest"];
 const DOW_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-const MEAL_MACROS = {
-  breakfast: { kcal: 470, protein: 54 },
-  chicken: { kcal: 750, protein: 83 },
-  beef: { kcal: 805, protein: 63 },
-};
 
 const DEFAULT_PROFILE = {
   startWeight: 175,
@@ -76,14 +70,12 @@ const App = {
   profile: null,
   scans: [],
   workoutLog: {}, // { date: { dayType, exercises: { name: [{weight,reps,done}] } } }
-  mealLog: {}, // { date: { breakfast:bool, lunch:{done,protein}, dinner:{done,protein} } }
   selectedWorkoutDate: todayISO(),
 
   async init() {
     this.profile = (await Storage.get("profile")) || { ...DEFAULT_PROFILE, startDate: todayISO() };
     this.scans = (await Storage.get("bodyscans")) || [];
     this.workoutLog = (await Storage.get("workoutlog")) || {};
-    this.mealLog = (await Storage.get("meallog")) || {};
 
     // Seed an initial scan from profile start stats so charts/goal math work day one.
     if (this.scans.length === 0) {
@@ -128,7 +120,6 @@ const App = {
     this.renderToday();
     this.renderWorkoutWeek();
     this.renderWorkoutDay(this.selectedWorkoutDate);
-    this.renderNutrition();
     this.renderProgress();
     this.fillSettingsForm();
   },
@@ -148,7 +139,6 @@ const App = {
         <button class="btn small" onclick="App.switchView('workout')">Log today's workout</button>
       `;
     }
-    this.renderMealChecklist(document.getElementById("today-meals-card"), date, true);
   },
 
   // ---------- WORKOUT ----------
@@ -237,79 +227,6 @@ const App = {
     this.workoutLog[dateStr] = { dayType, exercises };
     await Storage.set("workoutlog", this.workoutLog);
     this.renderWorkoutDay(dateStr);
-  },
-
-  // ---------- NUTRITION ----------
-  renderMealChecklist(container, date, compact) {
-    const log = this.mealLog[date] || { breakfast: false, lunch: { done: false, protein: "chicken" }, dinner: { done: false, protein: "chicken" } };
-    container.innerHTML = `
-      <h2>Meals${compact ? "" : " — " + fmtDate(date)}</h2>
-      <div class="meal-card">
-        <input type="checkbox" id="meal-breakfast" ${log.breakfast ? "checked" : ""} onchange="App.toggleMeal('${date}','breakfast')">
-        <div class="meal-body">
-          <div class="meal-name">Breakfast</div>
-          <div class="meal-desc">25g protein scoop + 10oz 2% milk + 3 eggs</div>
-          <div class="macros">~${MEAL_MACROS.breakfast.kcal} kcal · ${MEAL_MACROS.breakfast.protein}g protein (est.)</div>
-        </div>
-      </div>
-      ${["lunch", "dinner"].map((meal) => {
-        const m = log[meal] || { done: false, protein: "chicken" };
-        const macros = MEAL_MACROS[m.protein];
-        return `<div class="meal-card">
-          <input type="checkbox" id="meal-${meal}" ${m.done ? "checked" : ""} onchange="App.toggleMeal('${date}','${meal}')">
-          <div class="meal-body">
-            <div class="meal-name">${meal[0].toUpperCase() + meal.slice(1)}</div>
-            <div class="meal-desc">Rice, veggies, cheese, sriracha</div>
-            <div class="macros">~${macros.kcal} kcal · ${macros.protein}g protein (est.)</div>
-            <div class="toggle-group">
-              <button class="toggle-btn ${m.protein === "chicken" ? "active" : ""}" onclick="App.setProtein('${date}','${meal}','chicken')">Chicken</button>
-              <button class="toggle-btn ${m.protein === "beef" ? "active" : ""}" onclick="App.setProtein('${date}','${meal}','beef')">Beef</button>
-            </div>
-          </div>
-        </div>`;
-      }).join("")}
-    `;
-  },
-
-  ensureMealEntry(date) {
-    if (!this.mealLog[date]) {
-      this.mealLog[date] = { breakfast: false, lunch: { done: false, protein: "chicken" }, dinner: { done: false, protein: "chicken" } };
-    }
-    return this.mealLog[date];
-  },
-
-  async toggleMeal(date, meal) {
-    const entry = this.ensureMealEntry(date);
-    if (meal === "breakfast") entry.breakfast = !entry.breakfast;
-    else entry[meal].done = !entry[meal].done;
-    await Storage.set("meallog", this.mealLog);
-    this.renderToday();
-    this.renderNutrition();
-  },
-
-  async setProtein(date, meal, protein) {
-    const entry = this.ensureMealEntry(date);
-    entry[meal].protein = protein;
-    await Storage.set("meallog", this.mealLog);
-    this.renderToday();
-    this.renderNutrition();
-  },
-
-  renderNutrition() {
-    this.renderMealChecklist(document.getElementById("nutrition-plan-card"), todayISO(), false);
-
-    const histEl = document.getElementById("meal-history");
-    const dates = Object.keys(this.mealLog).sort().reverse().slice(0, 7);
-    if (!dates.length) {
-      histEl.innerHTML = `<p class="empty">No meals logged yet.</p>`;
-      return;
-    }
-    let rows = dates.map((d) => {
-      const l = this.mealLog[d];
-      const count = (l.breakfast ? 1 : 0) + (l.lunch?.done ? 1 : 0) + (l.dinner?.done ? 1 : 0);
-      return `<tr><td>${fmtDate(d)}</td><td>${count}/3 meals</td></tr>`;
-    }).join("");
-    histEl.innerHTML = `<table class="log-table"><thead><tr><th>Date</th><th>Completed</th></tr></thead><tbody>${rows}</tbody></table>`;
   },
 
   // ---------- PROGRESS ----------
@@ -547,7 +464,7 @@ const App = {
   },
 
   exportData() {
-    const payload = { profile: this.profile, bodyscans: this.scans, workoutlog: this.workoutLog, meallog: this.mealLog };
+    const payload = { profile: this.profile, bodyscans: this.scans, workoutlog: this.workoutLog };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -565,7 +482,6 @@ const App = {
       if (payload.profile) { this.profile = payload.profile; await Storage.set("profile", this.profile); }
       if (payload.bodyscans) { this.scans = payload.bodyscans; await Storage.set("bodyscans", this.scans); }
       if (payload.workoutlog) { this.workoutLog = payload.workoutlog; await Storage.set("workoutlog", this.workoutLog); }
-      if (payload.meallog) { this.mealLog = payload.meallog; await Storage.set("meallog", this.mealLog); }
       this.renderAll();
       alert("Data imported.");
     } catch (e) {
@@ -575,7 +491,7 @@ const App = {
 
   async clearData() {
     if (!confirm("This clears all local data on this device (Supabase data, if synced, is untouched). Continue?")) return;
-    ["profile", "bodyscans", "workoutlog", "meallog"].forEach((k) => localStorage.removeItem("ironlog_" + k));
+    ["profile", "bodyscans", "workoutlog"].forEach((k) => localStorage.removeItem("ironlog_" + k));
     location.reload();
   },
 };

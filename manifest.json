@@ -1,7 +1,7 @@
 {
   "name": "Iron Log",
   "short_name": "Iron Log",
-  "description": "4-day split workout tracker, meal checklist, and body-scan progress toward a body fat goal.",
+  "description": "4-day split workout tracker and body-scan progress toward a body fat goal.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

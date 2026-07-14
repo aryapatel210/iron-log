@@ -110,25 +110,6 @@
     width:22px;height:22px;accent-color:var(--accent);flex-shrink:0;
   }
 
-  .meal-card{
-    display:flex;gap:12px;align-items:flex-start;
-    border-top:1px solid var(--border);padding:14px 0;
-  }
-  .meal-card:first-child{border-top:none;padding-top:0;}
-  .meal-card input[type=checkbox]{
-    width:24px;height:24px;accent-color:var(--accent);margin-top:2px;flex-shrink:0;
-  }
-  .meal-body{flex:1;}
-  .meal-body .meal-name{font-weight:600;}
-  .meal-body .meal-desc{color:var(--text-dim);font-size:0.85rem;margin-top:2px;}
-  .meal-body .macros{color:var(--text-dim);font-size:0.78rem;margin-top:6px;}
-  .toggle-group{display:flex;gap:6px;margin-top:8px;}
-  .toggle-btn{
-    background:var(--surface-2);border:1px solid var(--border);color:var(--text-dim);
-    border-radius:8px;padding:5px 12px;font-size:0.78rem;font-weight:600;cursor:pointer;
-  }
-  .toggle-btn.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);}
-
   .btn{
     background:var(--accent);color:#fff;border:none;border-radius:10px;
     padding:12px 18px;font-size:0.95rem;font-weight:700;width:100%;cursor:pointer;
@@ -225,7 +206,6 @@
   <!-- TODAY -->
   <section class="view active" id="view-today">
     <div class="card" id="today-workout-card"></div>
-    <div class="card" id="today-meals-card"></div>
   </section>
 
   <!-- WORKOUT -->
@@ -235,15 +215,6 @@
       <div class="week-grid" id="week-grid"></div>
     </div>
     <div class="card" id="workout-day-card"></div>
-  </section>
-
-  <!-- NUTRITION -->
-  <section class="view" id="view-nutrition">
-    <div class="card" id="nutrition-plan-card"></div>
-    <div class="card">
-      <h2>Recent meal log</h2>
-      <div id="meal-history"></div>
-    </div>
   </section>
 
   <!-- PROGRESS -->
@@ -347,10 +318,6 @@
   <button class="tab-btn" data-view="workout">
     <svg viewBox="0 0 24 24"><path d="M6 7v10M2 9v6M18 7v10M22 9v6M6 12h12"/></svg>
     Workout
-  </button>
-  <button class="tab-btn" data-view="nutrition">
-    <svg viewBox="0 0 24 24"><path d="M4 3v18M4 3c0 4 4 4 4 8s-4 4-4 8M18 3v18M15 8h6"/></svg>
-    Meals
   </button>
   <button class="tab-btn" data-view="progress">
     <svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg>
