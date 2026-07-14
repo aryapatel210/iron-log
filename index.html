@@ -165,6 +165,31 @@
   table.log-table th,table.log-table td{padding:8px 4px;text-align:left;border-bottom:1px solid var(--border);}
   table.log-table th{color:var(--text-dim);font-weight:600;font-size:0.72rem;text-transform:uppercase;}
 
+  .streak-box{display:flex;align-items:baseline;gap:8px;margin-bottom:12px;}
+  .streak-box .streak-num{font-size:1.8rem;font-weight:800;color:var(--accent);}
+  .streak-box .streak-lbl{color:var(--text-dim);font-size:0.85rem;}
+
+  .heatmap-grid{display:grid;gap:3px;}
+  .hm-cell{width:100%;aspect-ratio:1;border-radius:3px;}
+  .hm-rest{background:var(--surface-2);}
+  .hm-missed{background:#3a1a1a;}
+  .hm-done{background:var(--green);}
+  .hm-pending{background:var(--surface-2);border:1.5px solid var(--accent);}
+  .hm-future{background:transparent;}
+  .hm-legend-swatch{width:10px;height:10px;border-radius:2px;display:inline-block;}
+  .hm-legend-swatch.hm-rest{background:var(--surface-2);}
+  .hm-legend-swatch.hm-missed{background:#3a1a1a;}
+  .hm-legend-swatch.hm-done{background:var(--green);}
+
+  .volume-row{border-top:1px solid var(--border);padding:10px 0;}
+  .volume-row:first-child{border-top:none;padding-top:0;}
+  .volume-row .volume-head{display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:6px;}
+  .volume-row .volume-head .wk-label{color:var(--text);font-weight:600;}
+  .volume-row .volume-head .wk-total{color:var(--text-dim);}
+  .volume-bar-track{background:var(--surface-2);border-radius:100px;height:8px;overflow:hidden;}
+  .volume-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--yellow));border-radius:100px;}
+  .volume-breakdown{color:var(--text-dim);font-size:0.72rem;margin-top:5px;}
+
   nav.tabbar{
     position:fixed;bottom:0;left:0;right:0;
     background:var(--surface);border-top:1px solid var(--border);
@@ -203,13 +228,8 @@
 
 <main>
 
-  <!-- TODAY -->
-  <section class="view active" id="view-today">
-    <div class="card" id="today-workout-card"></div>
-  </section>
-
   <!-- WORKOUT -->
-  <section class="view" id="view-workout">
+  <section class="view active" id="view-workout">
     <div class="card">
       <h2>This week</h2>
       <div class="week-grid" id="week-grid"></div>
@@ -230,6 +250,21 @@
         <span style="color:var(--accent);font-size:0.75rem;">● Weight (lb)</span>
         <span style="color:var(--blue);font-size:0.75rem;">● Body fat (%)</span>
       </div>
+    </div>
+    <div class="card">
+      <h2>Consistency</h2>
+      <div id="consistency-summary"></div>
+      <div id="consistency-heatmap"></div>
+      <div class="row" style="margin-top:8px;justify-content:center;gap:14px;">
+        <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-dim);"><span class="hm-legend-swatch hm-rest"></span>Rest</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-dim);"><span class="hm-legend-swatch hm-missed"></span>Missed</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-dim);"><span class="hm-legend-swatch hm-done"></span>Trained</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Weekly volume</h2>
+      <p style="color:var(--text-dim);font-size:0.8rem;margin:0 0 12px;">Total tonnage (weight × reps) logged per week.</p>
+      <div id="weekly-volume"></div>
     </div>
     <div class="card">
       <h2>Exercise trends</h2>
@@ -311,11 +346,7 @@
 </main>
 
 <nav class="tabbar">
-  <button class="tab-btn active" data-view="today">
-    <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
-    Today
-  </button>
-  <button class="tab-btn" data-view="workout">
+  <button class="tab-btn active" data-view="workout">
     <svg viewBox="0 0 24 24"><path d="M6 7v10M2 9v6M18 7v10M22 9v6M6 12h12"/></svg>
     Workout
   </button>

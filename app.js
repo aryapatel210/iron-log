@@ -117,28 +117,10 @@ const App = {
   renderAll() {
     const today = todayISO();
     document.getElementById("header-sub").textContent = fmtDate(today) + " · " + DAY_LABEL[splitForDate(today)] + " day";
-    this.renderToday();
     this.renderWorkoutWeek();
     this.renderWorkoutDay(this.selectedWorkoutDate);
     this.renderProgress();
     this.fillSettingsForm();
-  },
-
-  // ---------- TODAY ----------
-  renderToday() {
-    const date = todayISO();
-    const dayType = splitForDate(date);
-    const card = document.getElementById("today-workout-card");
-    if (dayType === "rest") {
-      card.innerHTML = `<h2>Today <span class="pill rest">Rest</span></h2><p class="empty">Recovery day. Light walk or mobility work if you feel like it.</p>`;
-    } else {
-      const exercises = PLAN[dayType];
-      card.innerHTML = `
-        <h2>Today <span class="pill ${dayType}">${DAY_LABEL[dayType]}</span></h2>
-        <p style="color:var(--text-dim);font-size:0.85rem;margin:0 0 4px;">${exercises.length} exercises — open the Workout tab to log sets.</p>
-        <button class="btn small" onclick="App.switchView('workout')">Log today's workout</button>
-      `;
-    }
   },
 
   // ---------- WORKOUT ----------
@@ -294,6 +276,126 @@ const App = {
     document.getElementById("scan-date").value = todayISO();
     this.renderChart();
     this.renderExerciseTrends();
+    this.renderConsistency();
+    this.renderVolume();
+  },
+
+  // ---------- CONSISTENCY ----------
+  dayVolume(dateStr) {
+    const entry = this.workoutLog[dateStr];
+    if (!entry) return 0;
+    let total = 0;
+    Object.values(entry.exercises || {}).forEach((sets) => {
+      sets.forEach((s) => { if (s.weight && s.reps) total += s.weight * s.reps; });
+    });
+    return total;
+  },
+
+  getConsistency(weeksToShow = 10) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() - today.getDay());
+
+    const weekStarts = [];
+    for (let w = weeksToShow - 1; w >= 0; w--) {
+      const ws = new Date(currentWeekStart);
+      ws.setDate(currentWeekStart.getDate() - w * 7);
+      weekStarts.push(ws);
+    }
+
+    const cells = [];
+    for (let dow = 0; dow < 7; dow++) {
+      for (let w = 0; w < weekStarts.length; w++) {
+        const d = new Date(weekStarts[w]);
+        d.setDate(d.getDate() + dow);
+        const dateStr = isoDate(d);
+        let status = "future";
+        if (d <= today) {
+          const dayType = splitForDate(dateStr);
+          if (dayType === "rest") status = "rest";
+          else if (this.dayVolume(dateStr) > 0) status = "done";
+          else status = dateStr === todayISO() ? "pending" : "missed";
+        }
+        cells.push({ date: dateStr, status });
+      }
+    }
+
+    // Current streak: walk backward from today over scheduled (non-rest) days only.
+    // Today gets a grace period if it's scheduled but not yet logged.
+    let streak = 0;
+    const orderedDates = [];
+    for (let i = 0; i < weeksToShow * 7; i++) {
+      const d = new Date(currentWeekStart);
+      d.setDate(currentWeekStart.getDate() - (weeksToShow - 1) * 7 + i);
+      if (d <= today) orderedDates.push(isoDate(d));
+    }
+    for (let i = orderedDates.length - 1; i >= 0; i--) {
+      const dateStr = orderedDates[i];
+      const dayType = splitForDate(dateStr);
+      if (dayType === "rest") continue;
+      if (dateStr === todayISO() && this.dayVolume(dateStr) === 0) continue;
+      if (this.dayVolume(dateStr) > 0) streak++;
+      else break;
+    }
+
+    return { cells, streak, weeksToShow };
+  },
+
+  renderConsistency() {
+    const summaryEl = document.getElementById("consistency-summary");
+    const gridEl = document.getElementById("consistency-heatmap");
+    if (!summaryEl || !gridEl) return;
+
+    const { cells, streak, weeksToShow } = this.getConsistency();
+    summaryEl.innerHTML = `<div class="streak-box"><span class="streak-num">${streak}</span><span class="streak-lbl">day streak on scheduled training days</span></div>`;
+    gridEl.style.gridTemplateColumns = `repeat(${weeksToShow}, 1fr)`;
+    gridEl.className = "heatmap-grid";
+    gridEl.innerHTML = cells.map((c) => `<div class="hm-cell hm-${c.status}" title="${c.date}"></div>`).join("");
+  },
+
+  // ---------- WEEKLY VOLUME ----------
+  getWeeklyVolume() {
+    const weeks = {};
+    Object.keys(this.workoutLog).forEach((date) => {
+      const vol = this.dayVolume(date);
+      if (vol <= 0) return;
+      const d = new Date(date + "T00:00:00");
+      d.setDate(d.getDate() - d.getDay());
+      const weekStart = isoDate(d);
+      const dayType = this.workoutLog[date].dayType || splitForDate(date);
+      if (!weeks[weekStart]) weeks[weekStart] = { start: weekStart, total: 0, byType: {} };
+      weeks[weekStart].total += vol;
+      weeks[weekStart].byType[dayType] = (weeks[weekStart].byType[dayType] || 0) + vol;
+    });
+    return Object.values(weeks).sort((a, b) => (a.start < b.start ? 1 : -1));
+  },
+
+  renderVolume() {
+    const container = document.getElementById("weekly-volume");
+    if (!container) return;
+    const weeks = this.getWeeklyVolume().slice(0, 8);
+    if (!weeks.length) {
+      container.innerHTML = `<p class="empty">Log a few workouts to see weekly volume.</p>`;
+      return;
+    }
+    const maxTotal = Math.max(...weeks.map((w) => w.total));
+    container.innerHTML = weeks.map((w) => {
+      const start = new Date(w.start + "T00:00:00");
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const label = `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })}–${end.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+      const pct = Math.max(4, Math.round((w.total / maxTotal) * 100));
+      const breakdown = Object.entries(w.byType)
+        .filter(([type]) => type !== "rest")
+        .map(([type, vol]) => `${DAY_LABEL[type]} ${Math.round(vol).toLocaleString()}`)
+        .join(" · ");
+      return `<div class="volume-row">
+        <div class="volume-head"><span class="wk-label">${label}</span><span class="wk-total">${Math.round(w.total).toLocaleString()} lb</span></div>
+        <div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%"></div></div>
+        <div class="volume-breakdown">${breakdown}</div>
+      </div>`;
+    }).join("");
   },
 
   getAllExerciseNames() {
