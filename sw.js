@@ -1,7 +1,11 @@
 // Minimal app-shell cache so the page still loads with a spotty gym connection.
 // Deliberately never caches Supabase REST calls — stale macros/workout data would
 // be actively wrong, not just outdated, so those always hit the network.
-const CACHE = "iron-log-v1";
+//
+// Network-first for shell files: always try to fetch the latest code when online,
+// and only fall back to the cached copy if the network request fails. This means
+// app updates show up on next load without needing a manual cache-version bump.
+const CACHE = "iron-log-v2";
 const SHELL = ["./", "index.html", "storage.js", "app.js", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -22,14 +26,11 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
 
   e.respondWith(
-    caches.match(e.request).then((cached) => {
-      const network = fetch(e.request)
-        .then((res) => {
-          caches.open(CACHE).then((c) => c.put(e.request, res.clone()));
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(e.request)
+      .then((res) => {
+        caches.open(CACHE).then((c) => c.put(e.request, res.clone()));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
